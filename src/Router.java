@@ -50,6 +50,7 @@ public class Router {
 
 	public Router(int serverPort) {
 		getLocalIp();
+		System.out.println(localIp.getHostAddress());
 		this.serverPort = serverPort;
 		messageBuffer = new ConcurrentLinkedQueue<Message>();
 		ServerThread serverThread = new ServerThread(serverPort);
@@ -119,7 +120,7 @@ public class Router {
 
 	private static void getLocalIp() {
         try {
-            localIp=localIp.getLocalHost();
+            localIp = InetAddress.getLocalHost();
         } catch (Exception e) {
             e.printStackTrace();
         }
