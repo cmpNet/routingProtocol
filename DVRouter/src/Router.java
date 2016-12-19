@@ -45,12 +45,12 @@ public class Router {
 	}
 
 	protected ConcurrentLinkedQueue<Message> messageBuffer;	
-	protected int serverPort;
+	protected static int serverPort;
 	protected static InetAddress localIp;
 
 	public Router(int serverPort) {
 		getLocalIp();
-		System.out.println(localIp.getHostAddress());
+		System.out.println("the ip of this host: " + localIp.getHostAddress());
 		this.serverPort = serverPort;
 		messageBuffer = new ConcurrentLinkedQueue<Message>();
 		ServerThread serverThread = new ServerThread(serverPort);
@@ -109,20 +109,4 @@ public class Router {
 			ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 			out.writeObject(serverPort + "!" + message);
 			out.flush();
-			out.close();
-			socket.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
-		}
-		return true;
-	}
-
-	private static void getLocalIp() {
-        try {
-            localIp = InetAddress.getLocalHost();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
+	
