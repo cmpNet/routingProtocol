@@ -109,4 +109,20 @@ public class Router {
 			ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 			out.writeObject(serverPort + "!" + message);
 			out.flush();
-	
+			out.close();
+			socket.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+
+	private static void getLocalIp() {
+        try {
+            localIp = InetAddress.getLocalHost();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}

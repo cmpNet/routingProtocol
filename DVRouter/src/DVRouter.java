@@ -198,4 +198,117 @@ class DVRouter extends Router {
 				if(next != null) {
 					HostAndPort corr = null;
 					for(HostAndPort y : directConnectHost) {
-						if(y.hostAdd.equals(next.nextH
+						if(y.hostAdd.equals(next.nextHopAdd) && y.hostRecvPort == next.nextPort) {
+							corr = y;
+							break;
+						}
+					}
+					if(corr != null) {
+						System.out.println("route this message to: " + next.nextHopAdd + ":" + next.nextPort);
+						send(next.nextHopAdd, corr.hostRecvPort, m.message);
+					}
+					else
+						System.out.println("routing error detected! ");
+				}
+				else {
+					System.out.println("routing error detected! what the hell?");
+				}
+			}
+		}
+	}
+
+	@Override
+	protected void sendMessage() {
+		HostAndPort toRemove = null;
+		HostAndPort toModify = null;
+		for(HostAndPort x : directConnectHost) {
+			long isDown = new Date().getTime() - x.lastRecvTime.getTime();
+			if(isDown > 10000) { //10 seconds
+				toRemove = x;
+				break;
+			}
+			
+			long sendNew = 5001;
+			if(x.lastSendTime != null)
+				sendNew = new Date().getTime() - x.lastSendTime.getTime();
+			if(sendNew > 5000) { //5 seconds
+				String message = "table";
+				String table = "";
+				int tableSize = 0;
+				for(RouterListElement y : routingTable) {
+					if(!(y.nextHopAdd.equals(x.hostAdd) && y.nextPort == x.hostRecvPort) 
+					   && !(y.destAdd.equals(x.hostAdd) && y.destPort == x.hostRecvPort)) {
+						table = table + '!' + y.destAdd + '!' + String.valueOf(y.destPort)
+					                  + '!' + String.valueOf(y.hopNum);
+						tableSize = tableSize + 1;
+					}
+				}
+				message = message + '!' + String.valueOf(tableSize) + table;
+				toModify = new HostAndPort(x.hostAdd, x.hostRecvPort, new Date(), null);
+				send(x.hostAdd, x.hostRecvPort, message);
+				break;
+			}
+		}		
+		if(toRemove != null) {
+			directConnectHost.remove(toRemove);
+			Vector<RouterListElement> removeList = new Vector<RouterListElement>();
+			for(RouterListElement x : routingTable) {
+				if((x.destAdd.equals(toRemove.hostAdd) && x.destPort == toRemove.hostRecvPort) 
+					|| (x.nextHopAdd.equals(toRemove.hostAdd) && x.nextPort == toRemove.hostRecvPort)) {
+					removeList.add(x);
+				}
+			}
+			for(RouterListElement x : removeList)
+				routingTable.remove(x);
+		}
+		else if(toModify != null)
+			modifyHostAndPort(toModify);
+	}
+
+	public static void main(String[] args) {
+		try {
+			BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+			System.out.println("Please input port");
+			DVRouter router = new DVRouter(Integer.valueOf(reader.readLine()));
+			System.out.println("Connect a router : -c ip port");
+			System.out.println("Send a message : -s ip port message");
+			System.out.println("Print router table : -r");
+			System.out.println("Print direct connect host : -d");
+			String s = null;
+			while ((s = reader.readLine()) != null) {
+				String[] temps = s.split(" ");
+				if (temps[0].equals("-c")) {
+					router.connect(temps[1], Integer.valueOf(temps[2]));
+				} else if (temps[0].equals("-s")) {
+					String addr = null;
+					int port = -1;
+					for(RouterListElement x : routingTable) {
+						if(x.destAdd.equals(temps[1])) {
+							addr = x.nextHopAdd;
+							for(HostAndPort y : directConnectHost) {
+								if(addr.equals(y.hostAdd)) {
+									port = y.hostRecvPort;
+									break;
+								}
+							}
+							break;
+						}
+					}
+					if(addr != null && port != -1)
+						router.send(addr, port, "message!" + localIp.getHostAddress() + '!' + serverPort + '!' 
+							                               + temps[1] + '!' + temps[2] + '!' + temps[3]);
+					else
+						System.out.println("can not access this host!");
+				}
+				else if(temps[0].equals("-r")) {
+					printRoutingTable();
+				}
+				else if(temps[0].equals("-d")) {
+					printDirectConnectHost();
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+}
